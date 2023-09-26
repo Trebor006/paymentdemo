@@ -2,6 +2,7 @@ package com.example.paymentdemo;
 
 import com.example.paymentdemo.dto.DetalleDeudaDto;
 import com.example.paymentdemo.dto.PagoDto;
+import com.example.paymentdemo.dto.UsuarioDto;
 import com.google.gson.Gson;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
@@ -10,6 +11,10 @@ import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 @Component
 public class BankSimulationRestClient {
@@ -20,7 +25,7 @@ public class BankSimulationRestClient {
   public DetalleDeudaDto obtenerDeudasPorCliente(String identificacion) {
     DetalleDeudaDto responseDto = null;
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(BASE_URL).path("/deuda/byUser/" + identificacion);
+    WebTarget target = client.target(BASE_URL).path("/deudas/byUser/" + identificacion);
 
     Response response = target.request(MediaType.APPLICATION_JSON).get();
 
@@ -63,13 +68,13 @@ public class BankSimulationRestClient {
   public void realizarPago(PagoDto pago) {
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(BASE_URL).path("/pago"); // Reemplaza con la URL de tu endpoint POST
+        client.target(BASE_URL).path("/pagos"); // Reemplaza con la URL de tu endpoint POST
 
     Response response =
         target
             .request(MediaType.APPLICATION_JSON)
             .post(Entity.entity(new Gson().toJson(pago), MediaType.APPLICATION_JSON));
-    if (response.getStatus() == 201) {
+    if (response.getStatus() == 200) {
       String jsonResponse = response.readEntity(String.class);
       System.out.println("Respuesta POST: " + jsonResponse);
     } else {
@@ -78,4 +83,25 @@ public class BankSimulationRestClient {
 
     response.close();
   }
+
+  public List<UsuarioDto> obtenerClientes() {
+    List<UsuarioDto> responseDto = new ArrayList<>();
+    Client client = ClientBuilder.newClient();
+    WebTarget target = client.target(BASE_URL).path("/usuarios");
+
+    Response response = target.request(MediaType.APPLICATION_JSON).get();
+
+    if (response.getStatus() == 200) {
+      String result = response.readEntity(String.class);
+      var responseDetail = new Gson().fromJson(result, UsuarioDto[].class);
+      responseDto = Arrays.stream(responseDetail).toList();
+      System.out.println("Respuesta GET: " + responseDto);
+    } else {
+      System.err.println("Error en la solicitud GET. Código de estado: " + response.getStatus());
+    }
+
+    response.close();
+    return responseDto;
+  }
+
 }

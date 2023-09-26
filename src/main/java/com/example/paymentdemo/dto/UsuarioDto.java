@@ -10,14 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DetalleDeuda {
-
-  @JsonProperty("deudaId")
-  private Long deudaId;
-
-  @JsonProperty("montoDeuda")
-  private Double montoDeuda;
-
-  @JsonProperty("saldo")
-  private Double saldo;
+public class UsuarioDto {
+  @JsonProperty("identificacion")
+  private String identificacion;
 }
