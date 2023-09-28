@@ -1,14 +1,8 @@
 package com.example.paymentdemo;
 
-import com.example.paymentdemo.dto.DetalleDeuda;
-import com.example.paymentdemo.dto.DetalleDeudaDto;
-import com.example.paymentdemo.dto.PagoDto;
-
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Random;
-
-import com.example.paymentdemo.dto.UsuarioDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,16 +20,28 @@ public class ThreadRequest {
   @Value("${max.threads}")
   private int maxThreads;
 
+  private List<PaymentSimulatorThread> threads;
+
   public void executeSimulation() {
+    threads = new ArrayList<>();
     UsuariosHelper.usuarios = bankSimulationRestClient.obtenerClientes();
-    for(int i = 0; i < maxThreads; i++) {
+    for (int i = 0; i < maxThreads; i++) {
       PaymentSimulatorThread paymentSimulatorThread = new PaymentSimulatorThread();
       paymentSimulatorThread.setRandom(random);
-      paymentSimulatorThread.setId(i+1);
+      paymentSimulatorThread.setId(i + 1);
       paymentSimulatorThread.setDelaySeconds(delaySeconds);
       paymentSimulatorThread.setBankSimulationRestClient(bankSimulationRestClient);
       paymentSimulatorThread.start();
+
+      addHilo(paymentSimulatorThread);
     }
   }
 
+  public void addHilo(PaymentSimulatorThread paymentSimulatorThread) {
+    threads.add(paymentSimulatorThread);
+  }
+
+  public void removeHilo(PaymentSimulatorThread paymentSimulatorThread) {
+    threads.remove(paymentSimulatorThread);
+  }
 }
