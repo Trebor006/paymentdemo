@@ -4,12 +4,14 @@ import com.example.paymentdemo.dto.DetalleDeudaDto;
 import com.example.paymentdemo.dto.PagoDto;
 import com.example.paymentdemo.dto.UsuarioDto;
 import com.google.gson.Gson;
+import jakarta.annotation.PostConstruct;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -18,8 +20,19 @@ import java.util.List;
 
 @Component
 public class BankSimulationRestClient {
-  private static final String BASE_URL =
-      "http://localhost:8080/api"; // Reemplaza con la URL base de tu API
+
+  @Value("${bank-simulator.server}")
+  private String server;
+
+  @Value("${bank-simulator.port}")
+  private String port;
+
+  private String BASE_URL; // Reemplaza con la URL base de tu API
+
+  @PostConstruct
+  public void init(){
+    BASE_URL = server + ":" + port + "/api";
+  }
 
   // Método para realizar una solicitud GET a un endpoint
   public DetalleDeudaDto obtenerDeudasPorCliente(String identificacion) {
@@ -38,6 +51,7 @@ public class BankSimulationRestClient {
     }
 
     response.close();
+    client.close();
     return responseDto;
   }
 
@@ -63,6 +77,7 @@ public class BankSimulationRestClient {
     }
 
     response.close();
+    client.close();
   }
 
   public void realizarPago(PagoDto pago) {
@@ -82,6 +97,7 @@ public class BankSimulationRestClient {
     }
 
     response.close();
+    client.close();
   }
 
   public List<UsuarioDto> obtenerClientes() {
@@ -101,7 +117,7 @@ public class BankSimulationRestClient {
     }
 
     response.close();
+    client.close();
     return responseDto;
   }
-
 }
