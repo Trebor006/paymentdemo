@@ -27,17 +27,23 @@ public class BankSimulationRestClient {
   @Value("${bank-simulator.port}")
   private String port;
 
+  @Value("${bank-simulator.timeout}")
+  private String timeout;
+
   private String BASE_URL; // Reemplaza con la URL base de tu API
 
   @PostConstruct
-  public void init(){
+  public void init() {
     BASE_URL = server + ":" + port + "/api";
   }
 
   // Método para realizar una solicitud GET a un endpoint
   public DetalleDeudaDto obtenerDeudasPorCliente(String identificacion) {
     DetalleDeudaDto responseDto = null;
-    Client client = ClientBuilder.newClient();
+    Client client =
+        ClientBuilder.newClient()
+            .property("CONNECT_TIMEOUT", timeout)
+            .property("READ_TIMEOUT", timeout);
     WebTarget target = client.target(BASE_URL).path("/deudas/byUser/" + identificacion);
 
     Response response = target.request(MediaType.APPLICATION_JSON).get();
@@ -57,7 +63,10 @@ public class BankSimulationRestClient {
 
   // Método para realizar una solicitud POST a un endpoint
   public void performPostRequest() {
-    Client client = ClientBuilder.newClient();
+    Client client =
+        ClientBuilder.newClient()
+            .property("CONNECT_TIMEOUT", timeout)
+            .property("READ_TIMEOUT", timeout);
     WebTarget target =
         client.target(BASE_URL).path("/endpoint"); // Reemplaza con la URL de tu endpoint POST
 
@@ -81,7 +90,10 @@ public class BankSimulationRestClient {
   }
 
   public void realizarPago(PagoDto pago) {
-    Client client = ClientBuilder.newClient();
+    Client client =
+        ClientBuilder.newClient()
+            .property("CONNECT_TIMEOUT", timeout)
+            .property("READ_TIMEOUT", timeout);
     WebTarget target =
         client.target(BASE_URL).path("/pagos"); // Reemplaza con la URL de tu endpoint POST
 
@@ -102,7 +114,10 @@ public class BankSimulationRestClient {
 
   public List<UsuarioDto> obtenerClientes() {
     List<UsuarioDto> responseDto = new ArrayList<>();
-    Client client = ClientBuilder.newClient();
+    Client client =
+        ClientBuilder.newClient()
+            .property("CONNECT_TIMEOUT", timeout)
+            .property("READ_TIMEOUT", timeout);
     WebTarget target = client.target(BASE_URL).path("/usuarios");
 
     Response response = target.request(MediaType.APPLICATION_JSON).get();
