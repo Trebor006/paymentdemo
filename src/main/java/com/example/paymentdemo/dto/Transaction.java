@@ -9,7 +9,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TransactionsDone {
+public class Transaction {
+    private boolean success;
+    private String uuid;
     private String identificacion;
     private PagoDto pago;
     private DetalleDeuda detalleDeuda;

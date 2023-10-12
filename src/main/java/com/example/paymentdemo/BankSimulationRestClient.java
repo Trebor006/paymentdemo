@@ -1,5 +1,6 @@
 package com.example.paymentdemo;
 
+import com.example.paymentdemo.components.response.ApiResponse;
 import com.example.paymentdemo.dto.DetalleDeudaDto;
 import com.example.paymentdemo.dto.PagoDto;
 import com.example.paymentdemo.dto.UsuarioDto;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -47,7 +49,8 @@ public class BankSimulationRestClient {
     Client client = clientBuilder.build();
     WebTarget target = client.target(BASE_URL).path("/deudas/byUser/" + identificacion);
 
-    Response response = target.request(MediaType.APPLICATION_JSON).get();
+    Response response =
+        target.request(MediaType.APPLICATION_JSON).header("uuid", UUID.randomUUID().toString()).get();
 
     if (response.getStatus() == 200) {
       String result = response.readEntity(String.class);
@@ -77,6 +80,7 @@ public class BankSimulationRestClient {
     Response response =
         target
             .request(MediaType.APPLICATION_JSON)
+            .header("uuid", UUID.randomUUID().toString())
             .post(Entity.entity(jsonData, MediaType.APPLICATION_JSON));
 
     if (response.getStatus() == 201) {
@@ -90,7 +94,7 @@ public class BankSimulationRestClient {
     client.close();
   }
 
-  public void realizarPago(PagoDto pago) {
+  public ApiResponse realizarPago(PagoDto pago, String uuid) {
     ClientBuilder clientBuilder = ClientBuilder.newBuilder();
     clientBuilder.connectTimeout(timeout, TimeUnit.MILLISECONDS);
     clientBuilder.readTimeout(timeout, TimeUnit.MILLISECONDS);
@@ -101,16 +105,23 @@ public class BankSimulationRestClient {
     Response response =
         target
             .request(MediaType.APPLICATION_JSON)
+            .header("uuid", uuid)
             .post(Entity.entity(new Gson().toJson(pago), MediaType.APPLICATION_JSON));
     if (response.getStatus() == 200) {
-      String jsonResponse = response.readEntity(String.class);
-      System.out.println("Respuesta POST: " + jsonResponse);
+
+//      var responseDetail = new Gson().fromJson(result, UsuarioDto[].class);
+
+      ApiResponse apiResponse = response.readEntity(ApiResponse.class);
+      System.out.println("Respuesta POST: " + new Gson().toJson(apiResponse));
+
+      return apiResponse;
     } else {
       System.err.println("Error en la solicitud POST. Código de estado: " + response.getStatus());
     }
 
     response.close();
     client.close();
+    return null;
   }
 
   public List<UsuarioDto> obtenerClientes() {

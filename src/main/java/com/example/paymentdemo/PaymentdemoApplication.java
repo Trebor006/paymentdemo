@@ -24,6 +24,9 @@ public class PaymentdemoApplication {
     @Value("${max.threads}")
     private int maxThreads;
 
+    @Value("${max.retry}")
+    private int maxIntentos;
+
     @PostConstruct
     public void execute(){
         Random random = new Random();
@@ -32,6 +35,7 @@ public class PaymentdemoApplication {
         threadRequest.setRandom(random);
         threadRequest.setDelaySeconds(delaySeconds);
         threadRequest.setMaxThreads(maxThreads);
+        threadRequest.setMaxIntentos(maxIntentos);
 
         threadRequest.start();
     }

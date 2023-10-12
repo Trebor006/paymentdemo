@@ -1,11 +1,10 @@
 package com.example.paymentdemo;
 
+import com.example.paymentdemo.components.response.ApiResponse;
 import com.example.paymentdemo.dto.*;
+import java.util.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Random;
+import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -16,30 +15,49 @@ public class PaymentSimulatorThread extends Thread {
   @Setter private Random random;
   @Setter private int delaySeconds;
   @Setter private int id;
+  @Setter private int maxIntentos;
+  @Getter private boolean started = false;
+  @Getter private boolean broken;
 
-  private List<TransactionsDone> listTransactions;
+  private List<Transaction> listTransactions;
 
   @Override
   public void run() {
     listTransactions = new ArrayList<>();
+    broken = false;
+    started = true;
+    int maxBrokenTransactions = 10;
+    int countBrokenTransactions = 0;
 
-    while (true) {
+    while (true && !broken) {
       UsuarioDto usuarioDto = obtenerUsuarioRandom(UsuariosHelper.usuarios);
       try {
         log.info("Hilo nro: " + id + " Procesando Pago" + usuarioDto.getIdentificacion());
-        TransactionsDone transactions = ejecutarPago(usuarioDto.getIdentificacion());
+        Transaction transactions = ejecutarPago(usuarioDto.getIdentificacion());
         if (transactions != null) {
           listTransactions.add(transactions);
 
-          log.info("Hilo nro: " + id + " Procesando Pago " + usuarioDto.getIdentificacion()
-                  + ", " + transactions.getPago().getMonto());
+          log.info(
+              "Hilo nro: "
+                  + id
+                  + " Procesando Pago "
+                  + usuarioDto.getIdentificacion()
+                  + ", "
+                  + transactions.getPago().getMonto());
+          countBrokenTransactions = 0;
+        } else {
+          countBrokenTransactions++;
+          if (countBrokenTransactions == maxBrokenTransactions) {
+            broken = true;
+          }
         }
-
 
         log.info("Transacciones realizadas por Hilo nro: " + id + " :: " + listTransactions.size());
         Thread.sleep(delaySeconds * 1000);
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        broken = true;
+        log.info("Marcando como BROKEN!!!");
+        log.info(e.getMessage());
       }
     }
   }
@@ -50,29 +68,70 @@ public class PaymentSimulatorThread extends Thread {
     return usuarios.get(pos);
   }
 
-  private TransactionsDone ejecutarPago(String identificacion) {
+  private Transaction ejecutarPago(String identificacion) {
     DetalleDeudaDto detalleDeudaDto =
         this.bankSimulationRestClient.obtenerDeudasPorCliente(identificacion);
+    boolean retry = false;
+    int countRetry = 1;
+    Transaction transaction = null;
     if (tieneDeuda(detalleDeudaDto)) {
-      TransactionsDone transactionsDone = simularPago(detalleDeudaDto);
-      transactionsDone.setIdentificacion(identificacion);
 
-      return transactionsDone;
+      try {
+        DetalleDeuda detalleDeuda = determinarDeudaPagar(detalleDeudaDto);
+        do {
+          log.info("Intento de pago nro " + countRetry + " para :" + detalleDeuda.getDeudaId());
+
+          transaction = simularPago(detalleDeuda, UUID.randomUUID().toString());
+          transaction.setIdentificacion(identificacion);
+          if (!transaction.isSuccess()) {
+            if (countRetry <= maxIntentos) {
+              retry = true;
+              countRetry++;
+            }
+          }
+        } while (retry);
+
+      } catch (Exception exception) {
+        return null;
+      }
     }
-    return null;
+    if (transaction == null || !transaction.isSuccess()) {
+      log.info("Deberiamos detallar el caso...");
+    }
+    return transaction;
   }
 
-  private TransactionsDone simularPago(DetalleDeudaDto detalleDeudaDto) {
+  private Transaction reintentarSimularPago(Transaction transaction, String uuid) {
+    ApiResponse apiResponse =
+        this.bankSimulationRestClient.realizarPago(transaction.getPago(), uuid);
+
+    return Transaction.builder()
+        .pago(transaction.getPago())
+        .detalleDeuda(transaction.getDetalleDeuda())
+        .uuid(uuid)
+        .success(apiResponse.isSuccess())
+        .build();
+  }
+
+  private DetalleDeuda determinarDeudaPagar(DetalleDeudaDto detalleDeudaDto) {
     Optional<DetalleDeuda> first =
         detalleDeudaDto.getDetalle().stream().filter(deuda -> deuda.getSaldo() > 0).findFirst();
-    DetalleDeuda detalleDeuda = first.get();
+    return first.get();
+  }
+
+  private Transaction simularPago(DetalleDeuda detalleDeuda, String uuid) {
     Long deudaId = detalleDeuda.getDeudaId();
     Double montoPago = generateRandomNumber(detalleDeuda.getSaldo());
 
     PagoDto pago = PagoDto.builder().deudaId(deudaId).monto(montoPago).build();
-    this.bankSimulationRestClient.realizarPago(pago);
+    ApiResponse apiResponse = this.bankSimulationRestClient.realizarPago(pago, uuid);
 
-    return TransactionsDone.builder().pago(pago).detalleDeuda(detalleDeuda).build();
+    return Transaction.builder()
+        .pago(pago)
+        .detalleDeuda(detalleDeuda)
+        .uuid(uuid)
+        .success(apiResponse.isSuccess())
+        .build();
   }
 
   private boolean tieneDeuda(DetalleDeudaDto detalleDeudaDto) {

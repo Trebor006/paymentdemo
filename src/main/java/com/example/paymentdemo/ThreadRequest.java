@@ -14,18 +14,33 @@ public class ThreadRequest extends Thread {
   @Setter private Random random;
   @Setter private int delaySeconds;
   @Setter private int maxThreads;
+  @Setter private int maxIntentos;
   private List<PaymentSimulatorThread> threads;
 
   @Override
   public void run() {
     initTreadsSimulation();
+    boolean blocked = false;
     while (true) {
       try {
-        UsuariosHelper.usuarios = bankSimulationRestClient.obtenerClientes();
-        if (UsuariosHelper.usuarios.size() > 0) {
+        if (!blocked && (UsuariosHelper.usuarios == null || UsuariosHelper.usuarios.size() == 0)) {
+          blocked = true;
+          log.info("Obteniendo deudas!");
+          UsuariosHelper.usuarios = bankSimulationRestClient.obtenerClientes();
+          blocked = false;
+        } else {
+          log.info("Esperando a que retornen las deudas!");
+          if (blocked) {
+            blocked = false;
+          }
+        }
+        if (UsuariosHelper.usuarios != null && UsuariosHelper.usuarios.size() > 0) {
           executeSimulation();
         }
       } catch (Exception exception) {
+        log.info("Hubo una excepcion");
+        log.info(exception.getMessage());
+        blocked = false;
       } finally {
         try {
           Thread.sleep(delaySeconds * 1000);
@@ -37,23 +52,38 @@ public class ThreadRequest extends Thread {
   }
 
   private void executeSimulation() {
-    for(int i = 0; i < maxThreads; i++) {
+    for (int i = 0; i < maxThreads; i++) {
       PaymentSimulatorThread hilo = getHilo(i);
-      hilo.start();
+      if (!hilo.isStarted()) {
+        hilo.start();
+      }
+
+      if (hilo.isBroken()) {
+        hilo.interrupt();
+
+        PaymentSimulatorThread newPaymentSimulatorThread = initHilo(i);
+        threads.set(i, newPaymentSimulatorThread);
+        newPaymentSimulatorThread.start();
+      }
     }
-//    validateThreads();
   }
 
   public void initTreadsSimulation() {
     threads = new ArrayList<>();
     for (int i = 0; i < maxThreads; i++) {
-      PaymentSimulatorThread paymentSimulatorThread = new PaymentSimulatorThread();
-      paymentSimulatorThread.setRandom(random);
-      paymentSimulatorThread.setId(i + 1);
-      paymentSimulatorThread.setDelaySeconds(delaySeconds);
-      paymentSimulatorThread.setBankSimulationRestClient(bankSimulationRestClient);
+      PaymentSimulatorThread paymentSimulatorThread = initHilo(i);
       addHilo(paymentSimulatorThread);
     }
+  }
+
+  private PaymentSimulatorThread initHilo(int i) {
+    PaymentSimulatorThread paymentSimulatorThread = new PaymentSimulatorThread();
+    paymentSimulatorThread.setRandom(random);
+    paymentSimulatorThread.setId(i + 1);
+    paymentSimulatorThread.setDelaySeconds(delaySeconds);
+    paymentSimulatorThread.setBankSimulationRestClient(bankSimulationRestClient);
+    paymentSimulatorThread.setMaxIntentos(maxIntentos);
+    return paymentSimulatorThread;
   }
 
   private void validateThreads() {
