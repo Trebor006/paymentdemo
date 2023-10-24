@@ -21,15 +21,19 @@ public class PaymentSimulatorThread extends Thread {
 
   private List<Transaction> listTransactions;
 
-  @Override
-  public void run() {
+  public PaymentSimulatorThread() {
     listTransactions = new ArrayList<>();
     broken = false;
-    started = true;
+    started = false;
+  }
+
+  @Override
+  public void run() {
     int maxBrokenTransactions = 10;
     int countBrokenTransactions = 0;
+    started = true;
 
-    while (true && !broken) {
+    while (!broken) {
       UsuarioDto usuarioDto = obtenerUsuarioRandom(UsuariosHelper.usuarios);
       try {
         log.info("Hilo nro: " + id + " Procesando Pago" + usuarioDto.getIdentificacion());
@@ -54,7 +58,7 @@ public class PaymentSimulatorThread extends Thread {
 
         log.info("Transacciones realizadas por Hilo nro: " + id + " :: " + listTransactions.size());
         Thread.sleep(delaySeconds * 1000);
-      } catch (InterruptedException e) {
+      } catch (Exception e) {
         broken = true;
         log.info("Marcando como BROKEN!!!");
         log.info(e.getMessage());

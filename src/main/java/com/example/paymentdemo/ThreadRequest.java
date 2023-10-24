@@ -27,14 +27,14 @@ public class ThreadRequest extends Thread {
           blocked = true;
           log.info("Obteniendo deudas!");
           UsuariosHelper.usuarios = bankSimulationRestClient.obtenerClientes();
-          blocked = false;
-        } else {
-          log.info("Esperando a que retornen las deudas!");
-          if (blocked) {
-            blocked = false;
-          }
-        }
-        if (UsuariosHelper.usuarios != null && UsuariosHelper.usuarios.size() > 0) {
+//          blocked = false;
+//        } else {
+//          log.info("Esperando a que retornen las deudas!");
+//          if (blocked) {
+//            blocked = false;
+//          }
+//        }
+//        if (UsuariosHelper.usuarios != null && UsuariosHelper.usuarios.size() > 0) {
           executeSimulation();
         }
       } catch (Exception exception) {
