@@ -1,6 +1,7 @@
 package com.example.paymentdemo.controller;
 
 import com.example.paymentdemo.dto.response.DetallePagoResponse;
+import com.google.gson.Gson;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -14,9 +15,12 @@ public class PagosController {
   @PostMapping("callback")
   public ResponseEntity registrarPago(
       @RequestHeader("uuid") String uuid, @RequestBody DetallePagoResponse detallePagoResponse) {
-    log.info("Registrando CALLBACK!!!: ");
-    log.info("UUID: " + uuid);
-    log.info("Procesando Pago :" + detallePagoResponse);
+    log.info(
+        "Registrando CALLBACK!!! - "
+            + "UUID: "
+            + uuid
+            + " - Pago Procesado :"
+            + new Gson().toJson(detallePagoResponse));
 
     return ResponseEntity.ok().build();
   }
